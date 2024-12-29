@@ -4,6 +4,74 @@
 <head>
         <meta charset="UTF-8">
         <title>Proof of Work Demo</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+        <style>
+                body {
+                        margin: 0;
+                        padding: 0;
+                }
+                main {
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        box-sizing: border-box;
+                }
+                #stats {
+                        width: 100%;
+                        height: 200px;
+                }
+                input[type="number"] {
+                        max-width: 120px;
+                }
+                .block-card {
+                        padding: 15px;
+                        margin: 0 10px 0 0;
+                        border-radius: 5px;
+                        min-width: 220px;
+                        box-sizing: border-box;
+                        flex: 0 0 auto;
+                }
+                /* Make the block list horizontally scrollable */
+                #blockList {
+                        display: flex;
+                        overflow-x: auto;
+                        padding: 10px 0;
+                        border-top: 1px solid #ddd;
+                        border-bottom: 1px solid #ddd;
+                        margin-bottom: 20px;
+                }
+                /* Ensure the blocks are displayed horizontally without causing overflow */
+                #blockList > .block-card:last-child {
+                        margin-right: 0; /* Remove right margin from last block card */
+                }
+                form {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 20px;
+                        align-items: flex-end;
+                }
+                form label {
+                        flex: 1 1 auto;
+                        min-width: 200px; /* Ensure labels don't shrink too much */
+                }
+                form button {
+                        flex: 0 0 auto;
+                }
+                /* Responsive adjustments */
+                @media (max-width: 600px) {
+                        form {
+                                flex-direction: column;
+                                align-items: stretch;
+                        }
+                        form label, form button {
+                                width: 100%;
+                        }
+                        input[type="number"] {
+                                max-width: 100%;
+                        }
+                }
+        </style>
+    
 </head>
 
 <body>
