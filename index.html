@@ -35,6 +35,8 @@
 
         <script type="module">
 
+                import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+
                 document.addEventListener('DOMContentLoaded', () => {
 
                         let blocks = [];
@@ -84,7 +86,7 @@
                                 let blockData = {
                                         index: blocks.length,
                                         timestamp: new Date().toISOString(),
-                                        data: "Some data",
+                                        data: "PLACEHOLDER",
                                         previousHash: blocks.length ? blocks[blocks.length -1].hash : "0",
                                         difficulty: currentDifficulty
                                 };
@@ -179,6 +181,48 @@
 
                                 // Auto-scroll to the newest block
                                 blockList.scrollLeft = blockList.scrollWidth;
+
+                                updateStatsVisualization();
+                        }
+
+                        function updateStatsVisualization() {
+                                // draw a line chart of the block times
+                                const svgWidth = document.getElementById("stats").clientWidth;
+                                const svgHeight = 200;
+                                const margin = {top: 20, right: 20, bottom: 30, left: 40};
+                        
+                                const data = blockTimes.slice(-50).map((d, i) => ({index: i, time: d}));
+                        
+                                const x = d3.scaleLinear()
+                                .domain([0, data.length -1])
+                                .range([margin.left, svgWidth - margin.right]);
+                        
+                                const y = d3.scaleLinear()
+                                .domain([0, d3.max(data, d => d.time)]).nice()
+                                .range([svgHeight - margin.bottom, margin.top]);
+                        
+                                const line = d3.line()
+                                .x((d, i) => x(i))
+                                .y(d => y(d.time));
+                        
+                                const svg = d3.select("#stats").html("").append("svg")
+                                .attr("width", svgWidth)
+                                .attr("height", svgHeight);
+                        
+                                svg.append("g")
+                                .attr("transform", `translate(0,${svgHeight - margin.bottom})`)
+                                .call(d3.axisBottom(x).ticks(10).tickFormat(''));
+                        
+                                svg.append("g")
+                                .attr("transform", `translate(${margin.left},0)`)
+                                .call(d3.axisLeft(y));
+                        
+                                svg.append("path")
+                                .datum(data)
+                                .attr("fill", "none")
+                                .attr("stroke", "steelblue")
+                                .attr("stroke-width", 1.5)
+                                .attr("d", line);
                         }
 
                         async function sha256(message) {
