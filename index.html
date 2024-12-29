@@ -1,35 +1,218 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <meta charset="UTF-8">
-    <title>Proof of Work Demo</title>
+        <meta charset="UTF-8">
+        <title>Proof of Work Demo</title>
 </head>
+
 <body>
-    <main>
-        <h1>Proof of Work Demo</h1>
-        
-        <section>
-            <form>
-                <label for="targetBlockTime">Target ₿lock Time (seconds):
-                    <input type="number" id="targetBlockTime" value="6" min="1">
-                </label>
-                <label for="difficultyAdjustmentInterval">Difficulty Adjustment Interval (blocks):
-                    <input type="number" id="difficultyAdjustmentInterval" value="10" min="1">
-                </label>
-                <button id="startBtn" type="button">Start Mining</button>
-            </form>
-            <p>₿locks until next difficulty adjustment: <span id="blocksUntilAdjustment"></span></p>
-        </section>
+        <main>
+                <h1>Proof of Work Demo</h1>
 
-        <section>
-            <div id="stats"></div> <!-- For D3 visualization -->
-        </section>
+                <section>
+                        <form>
+                                <label for="targetBlockTime">Target ₿lock Time (seconds):
+                                        <input type="number" id="targetBlockTime" value="6" min="1">
+                                </label>
+                                <label for="difficultyAdjustmentInterval">Difficulty Adjustment Interval (blocks):
+                                        <input type="number" id="difficultyAdjustmentInterval" value="10" min="1">
+                                </label>
+                                <button id="startBtn" type="button">Start Mining</button>
+                        </form>
+                        <p>₿locks until next difficulty adjustment: <span id="blocksUntilAdjustment"></span></p>
+                </section>
 
-        <section>
-            <h2>₿locks</h2>
-            <div id="blockList"></div> <!-- For displaying blocks -->
-        </section>
-    </main>
+                <section>
+                        <div id="stats"></div> <!-- For D3 visualization -->
+                </section>
 
+                <section>
+                        <h2>₿locks</h2>
+                        <div id="blockList"></div> <!-- For displaying blocks -->
+                </section>
+        </main>
+
+        <script type="module">
+
+                document.addEventListener('DOMContentLoaded', () => {
+
+                        let blocks = [];
+                        let targetBlockTime = parseFloat(document.getElementById('targetBlockTime').value); // in seconds
+                        let difficultyAdjustmentInterval = parseInt(document.getElementById('difficultyAdjustmentInterval').value); // in blocks
+                        let currentDifficulty = 2; // Initial difficulty (number of leading zeros required)
+                        let mining = false;
+                        let blocksUntilAdjustment = difficultyAdjustmentInterval;
+                        let blockTimes = [];
+
+                        const startBtn = document.getElementById('startBtn');
+                        const blocksUntilAdjustmentElem = document.getElementById('blocksUntilAdjustment');
+                        const blockList = document.getElementById('blockList');
+
+                        startBtn.addEventListener('click', () => {
+                                if (!mining) {
+                                        targetBlockTime = parseFloat(document.getElementById('targetBlockTime').value);
+                                        difficultyAdjustmentInterval = parseInt(document.getElementById('difficultyAdjustmentInterval').value);
+                                        blocksUntilAdjustment = difficultyAdjustmentInterval;
+                                        currentDifficulty = 2;
+                                        blocks = [];
+                                        blockTimes = [];
+                                        blockList.innerHTML = '';
+                                        startMining();
+                                        startBtn.textContent = 'Stop Mining';
+                                } else {
+                                        stopMining();
+                                        startBtn.textContent = 'Start Mining';
+                                }
+                        });
+
+                        function startMining() {
+                                mining = true;
+                                mineBlock();
+                        }
+
+                        function stopMining() {
+                                mining = false;
+                        }
+
+                        async function mineBlock() {
+                                if (!mining) return;
+
+                                let startTime = Date.now();
+                                let nonce = 0;
+                                let hash = '';
+                                let blockData = {
+                                        index: blocks.length,
+                                        timestamp: new Date().toISOString(),
+                                        data: "Some data",
+                                        previousHash: blocks.length ? blocks[blocks.length -1].hash : "0",
+                                        difficulty: currentDifficulty
+                                };
+
+                                const target = calculateTarget(currentDifficulty);
+
+                                while (mining) {
+                                        let input = JSON.stringify(blockData) + nonce;
+                                        hash = await sha256(input);
+                                        
+                                        if (hashToBigInt(hash) <= target) {
+                                        // Found a valid nonce
+                                        let endTime = Date.now();
+                                        let blockTime = (endTime - startTime) / 1000; // in seconds
+
+                                        let block = {
+                                                ...blockData,
+                                                nonce: nonce,
+                                                hash: hash,
+                                                blockTime: blockTime
+                                        };
+
+                                        if (blocks.length > 0) {
+                                                blockTimes.push(block.blockTime);
+                                        } else {
+                                                block.blockTime = 0;
+                                        }
+
+                                        blocks.push(block);
+                                        blocksUntilAdjustment--;
+
+                                        if (blocksUntilAdjustment == 0) {
+                                                adjustDifficulty();
+                                                blocksUntilAdjustment = difficultyAdjustmentInterval;
+                                        }
+
+                                        updateUI();
+                                        mineBlock();
+                                        return;
+                                        }
+                                        nonce++;
+
+                                        // Yield control to prevent blocking UI
+                                        if (nonce % 1000 === 0) await new Promise(resolve => setTimeout(resolve, 0));
+                                }
+                        }
+
+                        function adjustDifficulty() {
+                                let totalTime = 0;
+                                for (let i = blocks.length - difficultyAdjustmentInterval; i < blocks.length; i++) {
+                                        totalTime += blocks[i].blockTime;
+                                }
+                                let averageBlockTime = totalTime / difficultyAdjustmentInterval;
+
+                                if (averageBlockTime === 0) averageBlockTime = 1; // Avoid division by zero
+
+                                // Adjust difficulty proportionally to how far off we are from target
+                                let adjustment = targetBlockTime / averageBlockTime;
+                                
+                                // Limit adjustment to prevent too dramatic changes
+                                adjustment = Math.max(0.25, Math.min(4, adjustment));
+                                
+                                currentDifficulty *= adjustment;
+                                
+                                // Ensure minimum difficulty
+                                currentDifficulty = Math.max(1, currentDifficulty);
+                        }
+                        
+                        function updateUI() {
+                                // Update blocks until adjustment
+                                blocksUntilAdjustmentElem.textContent = blocksUntilAdjustment;
+
+                                // Update block list
+                                let block = blocks[blocks.length - 1];
+                                let blockDiv = document.createElement('div');
+                                blockDiv.className = 'block-card';
+                                blockDiv.innerHTML = `
+                                        <h3>₿lock #${block.index}</h3>
+                                        <p><strong>Timestamp:</strong> ${block.timestamp}</p>
+                                        <p><strong>Hash:</strong> ${block.hash}</p>
+                                        <p><strong>Previous Hash:</strong> ${block.previousHash}</p>
+                                        <p><strong>Nonce:</strong> ${block.nonce}</p>
+                                        <p><strong>Difficulty:</strong> ${block.difficulty}</p>
+                                        <p><strong>₿lock Time:</strong> ${block.blockTime.toFixed(2)}s</p>
+                                `;
+                                blockList.append(blockDiv);
+
+                                // Keep only last 50 blocks in UI
+                                if (blockList.childElementCount > 50) {
+                                        blockList.removeChild(blockList.firstChild);
+                                }
+
+                                // Auto-scroll to the newest block
+                                blockList.scrollLeft = blockList.scrollWidth;
+                        }
+
+                        async function sha256(message) {
+                                // encode as UTF-8
+                                const msgBuffer = new TextEncoder().encode(message);
+
+                                // hash the message
+                                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+
+                                // convert ArrayBuffer to Array
+                                const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+                                // convert bytes to hex string
+                                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+                                return hashHex;
+                        }
+
+                        function hashToBigInt(hash) {
+                                return BigInt('0x' + hash);
+                        }
+
+                        function calculateTarget(difficulty) {
+                                // Maximum target (lowest difficulty)
+                                const maxTarget = BigInt('0x' + 'f'.repeat(64));
+                                
+                                // Calculate actual target
+                                // We use a floating-point difficulty representation
+                                // This gives us much finer granularity than the leading zeros approach
+                                return maxTarget / BigInt(Math.floor(difficulty * 1000000)) * BigInt(1000000);
+                        }
+
+                });
+        </script>
 </body>
+
 </html>
