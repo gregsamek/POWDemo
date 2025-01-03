@@ -2,6 +2,8 @@
 
 A simple, interactive demonstration of Bitcoin's proof-of-work mining mechanism implemented in JavaScript.
 
+[Live Demo](https://gregsamek.github.io/POWDemo/)
+
 ## Overview
 
 This web-based demo visualizes how Bitcoin's mining process works by:
@@ -19,7 +21,7 @@ This web-based demo visualizes how Bitcoin's mining process works by:
 
 ## Usage
 
-1. Open `index.html` in a modern web browser
+1. Open `index.html` in a modern web browser (or click [this link](https://gregsamek.github.io/POWDemo/))
 2. Set your desired target block time (in seconds)
 3. Set the difficulty adjustment interval (in blocks)
 4. Click "Start Mining" to begin the simulation
