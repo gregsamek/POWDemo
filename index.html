@@ -89,6 +89,7 @@
                                 <button id="startBtn" type="button">Start Mining</button>
                         </form>
                         <p>₿locks until next difficulty adjustment: <span id="blocksUntilAdjustment"></span></p>
+                        <p>Seconds since last block: <span id="timeSinceLastBlock">0</span></p>
                 </section>
 
                 <section>
@@ -115,6 +116,9 @@
                         let blocksUntilAdjustment = difficultyAdjustmentInterval;
                         let blockTimes = [];
 
+                        let lastBlockTime = Date.now();
+                        let timeSinceLastBlockInterval;
+
                         const startBtn = document.getElementById('startBtn');
                         const blocksUntilAdjustmentElem = document.getElementById('blocksUntilAdjustment');
                         const blockList = document.getElementById('blockList');
@@ -138,11 +142,16 @@
 
                         function startMining() {
                                 mining = true;
+                                lastBlockTime = Date.now();
+                                timeSinceLastBlockInterval = setInterval(updateTimeSinceLastBlock, 100);
                                 mineBlock();
                         }
 
                         function stopMining() {
                                 mining = false;
+                                clearInterval(timeSinceLastBlockInterval);
+                                document.getElementById('timeSinceLastBlock').textContent = '0';
+
                         }
 
                         async function mineBlock() {
@@ -185,6 +194,7 @@
 
                                         blocks.push(block);
                                         blocksUntilAdjustment--;
+                                        lastBlockTime = Date.now();
 
                                         if (blocksUntilAdjustment == 0) {
                                                 adjustDifficulty();
@@ -322,6 +332,13 @@
                                 // This gives us much finer granularity than the leading zeros approach
                                 return maxTarget / BigInt(Math.floor(difficulty * 1000000)) * BigInt(1000000);
                         }
+
+                        function updateTimeSinceLastBlock() {
+                                const timeSinceLastBlockElem = document.getElementById('timeSinceLastBlock');
+                                const secondsSinceLastBlock = ((Date.now() - lastBlockTime) / 1000).toFixed(1);
+                                timeSinceLastBlockElem.textContent = secondsSinceLastBlock;
+                        }
+
 
                 });
         </script>
